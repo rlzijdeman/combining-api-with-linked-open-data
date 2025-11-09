@@ -3,13 +3,12 @@
 
 # plan: to combine data from API with Linked Data
 # Use case: what countries have astronauts up in the air?
-# read nasa api for astronaut names
-# link to wikidata and get country of birth
+# read api for astronaut names
+# link to wikidata and get citizenship
 
 # (1) get data from api :)
 # (2) read data as pandas df :)
-# (3) add wikidata identifiers to data
-# (3) new version: feed names of astronauts in query. via VALUES maybe?
+# (3) feed names of astronauts in query using VALUES keyword
 # (4) present results
 
 import requests
@@ -27,9 +26,7 @@ data = response.json()
 # 2. read data as pandas df
 df = pd.json_normalize(data, 'people')
 
-print("The data from the NASI API is:\n", df, 
-      "\n\nFrom what countries are these astronauts you ask?\n", 
-      "that data we can retrieve from Wikidata... \n")
+print("The data from the NASI API is:\n", df, "\n")
 
 # 3. list names for sparql query
 names = '" "'.join(df['name'])
@@ -43,6 +40,8 @@ SELECT distinct ?astronaut ?astronautLabel ?countryCitizenLabel WHERE {
   FILTER(LANG(?astronautLabel) = "en").
   FILTER(CONTAINS(?astronautLabel, ?astronautSpace )) .
   VALUES ?astronautSpace { """ + names + """ }
+  # CAVEAT: by doing it this way we ignore astronauts in space,
+  # if (1) they are not on Wikidata, (2) have their names spelled differently on Wikidata! 
 
   OPTIONAL {
     ?astronaut wdt:P27 ?countryCitizen .
@@ -57,11 +56,12 @@ sparql.setReturnFormat(JSON)
 results = sparql.query().convert()
 
 # 4 print(results)
-
+print("\n\nFrom what countries are these astronauts you ask?\n", 
+      "that data we can retrieve from Wikidata... \n")
 for result in results["results"]["bindings"]:
     print("# " + result["astronautLabel"]["value"])
     print("Country: " + result["countryCitizenLabel"]["value"])
     print("More info: " + result["astronaut"]["value"])
     print("\n")
 
-# MISSION ACCOMPLISHED!
+print("\nMISSION ACCOMPLISHED!\n")
